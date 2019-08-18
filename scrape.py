@@ -2,15 +2,21 @@ import requests
 from bs4 import BeautifulSoup
 from ast import literal_eval
 
-yelp_url = 'https://www.yelp.com/'
+def get_yelp_page(url, format=''):
+    '''
+    url doesn't include yelp.com prefix
+    '''
+    headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.90 Safari/537.36'}
+    yelp_url = 'https://www.yelp.com/'
+    url = yelp_url + url
+    response = requests.get(url.format(format), headers=headers, verify=True).text
+    page = BeautifulSoup(response, "lxml")
+    return page
 
 def get_city(search, city, state, page_limit = 1):
-    headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.90 Safari/537.36'}
-    url = yelp_url + 'search?find_desc=' + search + '&find_loc=' + city + '%2C%20' + state + '&start={}'
-
+    url =  'search?find_desc=' + search + '&find_loc=' + city + '%2C%20' + state + '&start={}'
     for i in range(0,page_limit*30,30):
-        response = requests.get(url.format(i), headers=headers, verify=False).text
-        page = BeautifulSoup(response, "lxml")
+        page = get_yelp_request(url, i)
         if i == 0:
             links = []
             names = []
@@ -20,7 +26,6 @@ def get_city(search, city, state, page_limit = 1):
                 links.append(y.attrs['href']) #append link attribute
                 names.append(y.text.strip())
     return {'names': names,'links':links}
-
 
 def get_header(page):
     return page.find('div',attrs={'class': 'content-container js-biz-details'})
@@ -61,6 +66,7 @@ def get_info(page):
     return info
 
 def get_reviews(page):
+    reviews = []
     for p in page.find_all("div", attrs={'class': 'review-content'}):
         date = p.find('span', attrs={'class': 'rating-qualifier'}).text.strip()
         rating = float(p.find('img').attrs['alt'][:3])
@@ -73,21 +79,22 @@ def get_reviews(page):
         reviews.append(review)
     return reviews
 
-def get_business(url, page_limit = 1):
+def get_business(url, page_limit = 1, show_loader=False):
     '''
     url is shorthand yelp business url
-    example: url = /biz/the-roosevelt-room-austin'
-    funciton appends {} to front of parameter url
+    url = /biz/the-roosevelt-room-austin'
     page_limit = number of requests to iterate through reviews
                  number of reviews = page_limit * 20
     '''
     #headers will make it look like you are using a web browser
-    headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.90 Safari/537.36'}
     reviews = []
-    final_url = yelp_url + url + '?start={}&sort_by=date_desc'
+    if show_loader:
+        print('Loading Reviews: [',end='=')
+        loader = '='*int(110/page_limit)
+    url = url + '?start={}&sort_by=date_desc'
     for i in range(0,page_limit*20,20):
-        response = requests.get(final_url.format(i), headers=headers, verify=False).text
-        page = BeautifulSoup(response, "lxml")
+        page = get_yelp_request(url, i)
+        if show_loader: print(loader,end='')
         #on the first request we get business data
         if i == 0:
             name = get_name(page)
@@ -99,8 +106,8 @@ def get_business(url, page_limit = 1):
         else:
             pass
         #on all page requests we get reviews
-        reviews = get_reviews(page)
-
+        reviews+=get_reviews(page)
+    if show_loader: print(']')
     business = {
         'name':name,
         'price':price,
