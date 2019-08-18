@@ -16,7 +16,7 @@ def get_yelp_page(url, format=''):
 def get_city(search, city, state, page_limit = 1):
     url =  'search?find_desc=' + search + '&find_loc=' + city + '%2C%20' + state + '&start={}'
     for i in range(0,page_limit*30,30):
-        page = get_yelp_request(url, i)
+        page = get_yelp_page(url, i)
         if i == 0:
             links = []
             names = []
@@ -93,7 +93,7 @@ def get_business(url, page_limit = 1, show_loader=False):
         loader = '='*int(110/page_limit)
     url = url + '?start={}&sort_by=date_desc'
     for i in range(0,page_limit*20,20):
-        page = get_yelp_request(url, i)
+        page = get_yelp_page(url, i)
         if show_loader: print(loader,end='')
         #on the first request we get business data
         if i == 0:
