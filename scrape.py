@@ -1,4 +1,5 @@
 import requests
+import sys
 from bs4 import BeautifulSoup
 from ast import literal_eval
 
@@ -14,6 +15,12 @@ def get_yelp_page(url, format=''):
     return page
 
 def get_city(search, city, state, page_limit = 1):
+    '''
+    search = in yelp search bar
+    city = where at
+    state = where tf at
+    page_limit = this will be number of url requests made, about 30 links per page
+    '''
     url =  'search?find_desc=' + search + '&find_loc=' + city + '%2C%20' + state + '&start={}'
     for i in range(0,page_limit*30,30):
         page = get_yelp_page(url, i)
@@ -25,6 +32,7 @@ def get_city(search, city, state, page_limit = 1):
             if y is not None: #filter out h3s that don't have links
                 links.append(y.attrs['href']) #append link attribute
                 names.append(y.text.strip())
+        sys.stdout.write('\rLinks loaded: {0}'.format(len(links)))
     return {'names': names,'links':links}
 
 def get_header(page):
@@ -79,7 +87,7 @@ def get_reviews(page):
         reviews.append(review)
     return reviews
 
-def get_business(url, page_limit = 1, show_loader=False):
+def get_business(url, review_limit = 500, loader = False):
     '''
     url is shorthand yelp business url
     url = /biz/the-roosevelt-room-austin'
@@ -88,13 +96,9 @@ def get_business(url, page_limit = 1, show_loader=False):
     '''
     #headers will make it look like you are using a web browser
     reviews = []
-    if show_loader:
-        print('Loading Reviews: [',end='=')
-        loader = '='*int(110/page_limit)
     url = url + '?start={}&sort_by=date_desc'
-    for i in range(0,page_limit*20,20):
+    for i in range(0,review_limit,20):
         page = get_yelp_page(url, i)
-        if show_loader: print(loader,end='')
         #on the first request we get business data
         if i == 0:
             name = get_name(page)
@@ -107,7 +111,7 @@ def get_business(url, page_limit = 1, show_loader=False):
             pass
         #on all page requests we get reviews
         reviews+=get_reviews(page)
-    if show_loader: print(']')
+        if loader: sys.stdout.write('\rReviews loaded: {0}'.format(len(reviews)))
     business = {
         'name':name,
         'price':price,
