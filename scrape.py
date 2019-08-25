@@ -77,6 +77,8 @@ def get_reviews(page):
     reviews = []
     for p in page.find_all("div", attrs={'class': 'review-content'}):
         date = p.find('span', attrs={'class': 'rating-qualifier'}).text.strip()
+        if 'Updated' in date:
+            date = date.split('\n')[0]
         rating = float(p.find('img').attrs['alt'][:3])
         content = p.find('p', attrs={'lang': 'en'}).text
         review = {
