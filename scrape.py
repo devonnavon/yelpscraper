@@ -54,6 +54,13 @@ def get_price(header):
         price = None
     return price
 
+def get_types(header):
+    try: #some places don't have a price
+        types = [x.text for x in header.find('span',attrs={'class':'category-str-list'}).find_all('a')]
+    except AttributeError:
+        types = None
+    return types
+
 def get_ratings(header):
     ratings_raw = literal_eval(header.find('div', attrs={'id':"rating-details-modal-content"}).attrs['data-monthly-ratings'])
     ratings = {}
@@ -106,6 +113,7 @@ def get_business(url, review_limit = 500, loader = False):
             name = get_name(page)
             header = get_header(page)
             price = get_price(header)
+            types = get_types(header)
             ratings = get_ratings(header)
             hours = get_hours(page)
             info = get_info(page)
